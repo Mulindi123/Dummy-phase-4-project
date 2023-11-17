@@ -1,4 +1,6 @@
 instance/*
+__pycache__/
 !instance/.gitignore
-.webassets-cache
+.webassets-cache/
 .env
+migrations/
