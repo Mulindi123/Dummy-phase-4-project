@@ -5,21 +5,22 @@ from flask_cors import CORS
 from werkzeug.exceptions import NotFound
 import os
 from models import db, Customer, Product, Review
-
+from flask_login import LoginManager
 from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-# app.secret_key = os.getenv("MY_KEY")
-app.secret_key ="b'\xd4\xfa\x1d\x0e\x02\x87\x91\x96V\xb5H{\xd3\xd5\x1ee'"
+app.secret_key = os.getenv("MY_KEY")
 
-# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URI")
-app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///app.db"
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URI")
+# app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 app.json.compact = False
-
+login_manager = LoginManager()
+login_manager.init_app(app)
 migrate = Migrate(app, db)
 db.init_app(app)
 
