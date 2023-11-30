@@ -1,11 +1,11 @@
 from flask import Flask,request,session, make_response, jsonify
 from flask_migrate import Migrate
+from flask_session import Session
 from flask_restful import Api, Resource
 from flask_cors import CORS
 from werkzeug.exceptions import NotFound
 import os
 from models import db, Customer, Product, Review
-from flask_login import LoginManager
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -16,35 +16,43 @@ app.secret_key = os.getenv("MY_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URI")
 # app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_FILE_DIR'] = 'session_dir'
+
+print("SESSION_FILE_DIR:", app.config['SESSION_FILE_DIR'])
 
 app.json.compact = False
-login_manager = LoginManager()
-login_manager.init_app(app)
 migrate = Migrate(app, db)
 db.init_app(app)
 
 api = Api(app)
+SESSION_TYPE = 'filesystem'
+app.config.from_object(__name__)
+Session(app)
 CORS(app, origins="*")
 
 @app.before_request
 def check_if_logged_in():
     if "customer_id" not in session:
-        if request.endpoint not in ["signup","login", "products"]:
+        if request.endpoint not in ["signup","login","session","products"]:
             return {"error": "unauthorized access!"}, 401
         
 class CheckSession(Resource):
     def get(self):
         if session.get('customer_id'):
-            customer = Customer.query.filter(Customer.id==session['customer_id']).first()
+            customer_id = session['customer_id']
+            print("Customer ID from session:", customer_id)
+            
+            customer = Customer.query.filter(Customer.id==customer_id).first()
+            
+            if customer:
+                print("Customer found in the database")
+                return customer.to_dict(), 200
+            else:
+                print("Customer not found in the database")
+        return {'error': 'No user in session'}, 404
 
-            # customer_dict = {
-            #     "username": customer.username,
-            #     "password": customer._password_hash
-            # }
-            return customer.to_dict(), 200
-        
-        return {'error': 'Resource unavailable'}
 
 class Index(Resource):
     def get(self):
@@ -74,31 +82,34 @@ class Signup(Resource):
         return {"error": "Customer details must be provided!"}, 422
     
 class Login(Resource):
-
     def post(self):
+
         username = request.get_json().get("username")
         password = request.get_json().get("password")
 
         customer = Customer.query.filter(Customer.username == username).first()
 
         if customer:
+            if "customer_id" in session:
+                return {"error": "User is already logged in"}, 400
+            
             if customer.authenticate(password):
                 session['customer_id'] = customer.id
-
-                customer_dict = customer.to_dict()
-                print("Login successful. Customer ID:", customer.id)  
-                return make_response(jsonify(customer_dict), 201)
+                print("Login successful. Customer ID:", customer.id)
+                return make_response(jsonify(customer.to_dict()), 201)
             else:
-                print("Invalid password.")  
+                print("Invalid password.")
                 return {"error": "Invalid password"}, 401
-        
-        print("Customer not registered.") 
+
+        print("Customer not registered.")
         return {"error": "Customer not Registered"}, 404
+
 
 class Logout(Resource):
     def delete(self):
-        if session.get('customer_id'):
+        if 'customer_id' in session:
             session['customer_id'] = None
+            session.pop('customer_id')
             print("Log out successful!")
             return {'info': 'customer logged out successfully'}, 200
         else:

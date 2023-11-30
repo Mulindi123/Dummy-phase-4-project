@@ -83,11 +83,12 @@ const Login = () => {
           fetch('/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials:"include",
             body: JSON.stringify(values),
           })
             .then((res) => {
               if (res.status === 201) {
-                enqueueSnackbar('Log in Successfully', { variant: 'success' });
+                enqueueSnackbar('Log in Successful', { variant: 'success' });
                 navigate('/');
               } else if (res.status === 401) {
                 enqueueSnackbar('Invalid credentials', { variant: 'error' });

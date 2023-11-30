@@ -5,6 +5,7 @@ import './index.css';
 import App from "./components/App"
 import {BrowserRouter} from "react-router-dom"
 import { SnackbarProvider} from 'notistack'
+import { AuthContextProvider } from './components/AuthContextProvider';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -12,7 +13,9 @@ root.render(
     <BrowserRouter>
       <ChakraProvider>
         <SnackbarProvider>
-        <App />
+          <AuthContextProvider>
+            <App />
+          </AuthContextProvider>
         </SnackbarProvider>  
         </ChakraProvider>
     </BrowserRouter>
